@@ -11,10 +11,22 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 
-interface AddGoalModalProps {
+interface FinancialGoal {
+  id: string;
+  title: string;
+  description?: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string;
+  category: string;
+  is_completed: boolean;
+}
+
+interface EditGoalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGoalAdded: () => void;
+  onGoalUpdated: () => void;
+  goal: FinancialGoal | null;
 }
 
 // Fallback categories for goals
@@ -30,7 +42,7 @@ const fallbackGoalCategories = [
   "Altro"
 ];
 
-const AddGoalModal = ({ isOpen, onClose, onGoalAdded }: AddGoalModalProps) => {
+const EditGoalModal = ({ isOpen, onClose, onGoalUpdated, goal }: EditGoalModalProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { getCategoryNames, isLoading: categoriesLoading, refreshCategories } = useCategories();
@@ -57,48 +69,55 @@ const AddGoalModal = ({ isOpen, onClose, onGoalAdded }: AddGoalModalProps) => {
     return userCategoryNames.length > 0 ? userCategoryNames : fallbackGoalCategories;
   };
 
+  // Populate form when goal changes
+  useEffect(() => {
+    if (goal) {
+      setFormData({
+        title: goal.title,
+        description: goal.description || '',
+        target_amount: goal.target_amount.toString(),
+        current_amount: goal.current_amount.toString(),
+        target_date: goal.target_date,
+        category: goal.category
+      });
+    }
+  }, [goal]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !goal) return;
 
     setIsLoading(true);
     
     try {
       const { error } = await supabase
         .from('financial_goals')
-        .insert({
-          user_id: user.id,
+        .update({
           title: formData.title,
-          description: formData.description,
+          description: formData.description || null,
           target_amount: parseFloat(formData.target_amount),
-          current_amount: formData.current_amount ? parseFloat(formData.current_amount) : 0,
+          current_amount: parseFloat(formData.current_amount),
           target_date: formData.target_date,
-          category: formData.category
-        });
+          category: formData.category,
+          is_completed: parseFloat(formData.current_amount) >= parseFloat(formData.target_amount)
+        })
+        .eq('id', goal.id)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
       toast({
-        title: "Obiettivo creato!",
-        description: `Obiettivo "${formData.title}" aggiunto con successo`,
-      });
-
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        target_amount: '',
-        current_amount: '',
-        target_date: '',
-        category: ''
+        title: "Obiettivo aggiornato!",
+        description: `Obiettivo "${formData.title}" modificato con successo`,
       });
       
-      onGoalAdded();
+      onGoalUpdated();
       onClose();
     } catch (error) {
+      console.error('Error updating goal:', error);
       toast({
         title: "Errore",
-        description: "Non è stato possibile creare l'obiettivo",
+        description: "Non è stato possibile aggiornare l'obiettivo",
         variant: "destructive",
       });
     } finally {
@@ -106,13 +125,15 @@ const AddGoalModal = ({ isOpen, onClose, onGoalAdded }: AddGoalModalProps) => {
     }
   };
 
+  if (!goal) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nuovo Obiettivo Finanziario</DialogTitle>
+          <DialogTitle>Modifica Obiettivo</DialogTitle>
           <DialogDescription>
-            Crea un nuovo obiettivo per raggiungere i tuoi traguardi finanziari
+            Modifica i dettagli del tuo obiettivo finanziario
           </DialogDescription>
         </DialogHeader>
 
@@ -201,7 +222,6 @@ const AddGoalModal = ({ isOpen, onClose, onGoalAdded }: AddGoalModalProps) => {
               type="date"
               value={formData.target_date}
               onChange={(e) => setFormData(prev => ({ ...prev, target_date: e.target.value }))}
-              min={new Date().toISOString().split('T')[0]}
             />
           </div>
 
@@ -216,7 +236,7 @@ const AddGoalModal = ({ isOpen, onClose, onGoalAdded }: AddGoalModalProps) => {
               className="flex-1"
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Crea Obiettivo
+              Salva Modifiche
             </Button>
           </div>
         </form>
@@ -225,4 +245,4 @@ const AddGoalModal = ({ isOpen, onClose, onGoalAdded }: AddGoalModalProps) => {
   );
 };
 
-export default AddGoalModal;
+export default EditGoalModal;

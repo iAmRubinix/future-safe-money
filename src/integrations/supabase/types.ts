@@ -116,6 +116,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_categories: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      spending_limits: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          monthly_limit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          monthly_limit: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          monthly_limit?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -123,6 +183,7 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          expense_type: string
           goal_id: string | null
           id: string
           is_recurring: boolean | null
@@ -138,6 +199,7 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          expense_type?: string
           goal_id?: string | null
           id?: string
           is_recurring?: boolean | null
@@ -153,6 +215,7 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          expense_type?: string
           goal_id?: string | null
           id?: string
           is_recurring?: boolean | null
