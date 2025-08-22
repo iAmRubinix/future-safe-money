@@ -31,7 +31,11 @@ interface SpendingLimit {
 interface CategorySpending {
   category: string;
   total: number;
+  personal: number;
+  household: number;
   percentage: number;
+  personalPercentage: number;
+  householdPercentage: number;
   limit?: number;
   limitPercentage?: number;
 }
@@ -107,21 +111,37 @@ const StatisticsPage = () => {
     const filteredTransactions = getFilteredTransactions();
     const totalSpending = filteredTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
     
-    const categoryMap = new Map<string, number>();
+    const categoryMap = new Map<string, { personal: number; household: number; total: number }>();
     
     filteredTransactions.forEach(t => {
-      const current = categoryMap.get(t.category) || 0;
-      categoryMap.set(t.category, current + Number(t.amount));
+      const category = t.category;
+      const amount = Number(t.amount);
+      const isPersonal = t.expense_type === 'personal' || !t.expense_type;
+      
+      const current = categoryMap.get(category) || { personal: 0, household: 0, total: 0 };
+      
+      if (isPersonal) {
+        current.personal += amount;
+      } else {
+        current.household += amount;
+      }
+      current.total += amount;
+      
+      categoryMap.set(category, current);
     });
 
-    const categorySpending: CategorySpending[] = Array.from(categoryMap.entries()).map(([category, total]) => {
+    const categorySpending: CategorySpending[] = Array.from(categoryMap.entries()).map(([category, data]) => {
       const limit = spendingLimits.find(l => l.category === category);
-      const limitPercentage = limit ? (total / limit.monthly_limit) * 100 : undefined;
+      const limitPercentage = limit ? (data.total / limit.monthly_limit) * 100 : undefined;
       
       return {
         category,
-        total,
-        percentage: totalSpending > 0 ? (total / totalSpending) * 100 : 0,
+        total: data.total,
+        personal: data.personal,
+        household: data.household,
+        percentage: totalSpending > 0 ? (data.total / totalSpending) * 100 : 0,
+        personalPercentage: data.total > 0 ? (data.personal / data.total) * 100 : 0,
+        householdPercentage: data.total > 0 ? (data.household / data.total) * 100 : 0,
         limit: limit?.monthly_limit,
         limitPercentage
       };
@@ -321,7 +341,7 @@ const StatisticsPage = () => {
                 Ripartizione per Categorie
               </CardTitle>
               <CardDescription>
-                Distribuzione delle spese per categoria con limiti di spesa
+                Distribuzione delle spese per categoria con divisione personale/domestica e limiti di spesa
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -342,12 +362,30 @@ const StatisticsPage = () => {
                         </span>
                       </div>
                       
-                      {/* Progress bar for category percentage */}
-                      <div className="w-full bg-muted rounded-full h-2">
+                      {/* Segmented progress bar for personal vs household */}
+                      <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
                         <div 
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${Math.min(category.percentage, 100)}%` }}
+                          className="bg-blue-500 h-3 transition-all"
+                          style={{ width: `${(category.personal / category.total) * category.percentage}%` }}
+                          title={`Personale: €${category.personal.toFixed(2)} (${category.personalPercentage.toFixed(1)}%)`}
                         ></div>
+                        <div 
+                          className="bg-green-500 h-3 transition-all -mt-3"
+                          style={{ width: `${(category.household / category.total) * category.percentage}%`, marginLeft: `${(category.personal / category.total) * category.percentage}%` }}
+                          title={`Domestica: €${category.household.toFixed(2)} (${category.householdPercentage.toFixed(1)}%)`}
+                        ></div>
+                      </div>
+
+                      {/* Breakdown details */}
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span>Personale: €{category.personal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Domestica: €{category.household.toFixed(2)}</span>
+                        </div>
                       </div>
 
                       {/* Spending limit indicator */}
@@ -359,10 +397,12 @@ const StatisticsPage = () => {
                               {category.limitPercentage?.toFixed(0)}%
                             </span>
                           </div>
-                          <Progress 
-                            value={Math.min(category.limitPercentage || 0, 100)} 
-                            className="mt-1"
-                          />
+                          {category.limitPercentage && category.limitPercentage < 100 && (
+                            <Progress 
+                              value={category.limitPercentage} 
+                              className="mt-1"
+                            />
+                          )}
                           {category.limitPercentage && category.limitPercentage >= 80 && (
                             <div className="flex items-center gap-1 mt-1 text-xs">
                               <AlertCircle className="h-3 w-3" />

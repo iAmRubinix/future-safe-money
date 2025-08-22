@@ -1017,10 +1017,10 @@ const Dashboard = () => {
             <CardTitle>I Tuoi Obiettivi</CardTitle>
             <CardDescription>
               Progresso verso i tuoi obiettivi finanziari
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {goals.length === 0 ? (
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {goals.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Nessun obiettivo ancora</p>
