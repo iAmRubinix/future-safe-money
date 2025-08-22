@@ -99,7 +99,10 @@ npm install
 
 # Configura le variabili d'ambiente
 cp .env.example .env.local
-# Modifica .env.local con le tue credenziali Supabase
+# Modifica .env.local con le tue credenziali Supabase ad esempio
+VITE_SUPABASE_PROJECT_ID=""
+VITE_SUPABASE_PUBLISHABLE_KEY=""
+VITE_SUPABASE_URL="https://.supabase.co"
 
 # Avvia il server di sviluppo
 npm run dev
